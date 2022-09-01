@@ -1,0 +1,10 @@
+
+/* INDEX */
+.task_clickable_row {
+    cursor: pointer;
+}
+
+.task_clickable_row:hover {
+    background: lightblue;
+}
+

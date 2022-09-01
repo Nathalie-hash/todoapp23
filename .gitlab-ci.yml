@@ -1,0 +1,44 @@
+stages:
+  - test
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - node_modules/
+    - vendor/
+
+test:
+  image: edbizarro/gitlab-ci-pipeline-php:7.3
+  stage: test
+  services:
+    - mysql:5.7
+
+  variables:
+    MYSQL_ROOT_PASSWORD: root
+    MYSQL_USER: homestead
+    MYSQL_PASSWORD: secret
+    MYSQL_DATABASE: homestead
+    DB_HOST: mysql
+
+  before_script:
+    - sudo apt-get update -y
+    - sudo apt-get install unzip xvfb libxi6 libgconf-2-4 libnss3 wget -yqq
+    - wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+    - sudo sh -c 'echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
+    - sudo apt-get update -yqq
+    - sudo apt-get install -y google-chrome-stable
+
+  script:
+    - composer update --no-interaction --no-progress  --prefer-dist --optimize-autoloader --ignore-platform-reqs
+    - cp .env.example .env
+    - rm .env.dusk.local
+    - php artisan key:generate
+    - ./vendor/bin/phpunit
+    - php artisan config:cache
+    - php artisan migrate --seed
+    - php artisan storage:link
+    - php artisan serve & 
+    - ./vendor/laravel/dusk/bin/chromedriver-linux --port=9515 &
+    - sleep 5
+    - php artisan dusk:chrome-driver
+    - php artisan dusk
